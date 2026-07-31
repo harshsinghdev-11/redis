@@ -48,14 +48,17 @@ static Conn *handle_accept(int fd) {
 }
 
 static void fd_set_nb(int fd) {
+    //fcnt = file control
+
     fcntl(fd, F_SETFL, fcntl(fd, F_GETFL, 0) | O_NONBLOCK);
 };
 
-static void
-buf_append(std::vector<uint8_t> &buf, const uint8_t *data, size_t len) {
+static void buf_append(std::vector<uint8_t> &buf, const uint8_t *data, size_t len) {
     buf.insert(buf.end(), data, data + len);
 }
-// remove from the front
+
+
+
 static void buf_consume(std::vector<uint8_t> &buf, size_t n) {
     buf.erase(buf.begin(), buf.begin() + n);
 }
@@ -101,7 +104,6 @@ static void handle_read(Conn *conn) {
     // 4. Process the parsed message.
     // 5. Remove the message from `Conn::incoming`.
     try_one_request(conn);
-    // ...
 }
 
 
@@ -121,13 +123,49 @@ static void handle_write(Conn *conn) {
 int main(){
     
     int fd = socket(AF_INET,SOCK_STREAM,0);
+    if(fd<0){
+        die("socket()");
+    }
+
+    int val = 1;
+    setsockopt(fd,SOL_SOCKET,SO_REUSEADDR,&val,sizeof(val));
+
+    //binding the socket
+    struct sockaddr_in addr = {};
+    addr.sin_family = AF_INET;
+    addr.sin_port = ntohs(1234);
+    addr.sin_addr.s_addr = ntohl(0);
+
+
+    //typecasting &addr - generic c api accepting the base struct 
+    // a form of manual polymorphism
+    int rv = bind(fd,(const sockaddr*)&addr,sizeof(addr));
+    if(rv){
+        die("bind()");
+    }
+
+    fd_set_nb(fd);
+
+
+    //SOMAXCONN = maximum backlog queue
+    // what is backlog queue? 
+    rv = listen(fd,SOMAXCONN);
+    if(rv){
+        die("listen()");
+    }
+
     vector<Conn*> fd2Conn;
+
+    //
     vector<struct pollfd>poll_args;
 
     while(true){
         poll_args.clear();
+
+        //listening socket in first position
         struct pollfd pfd= {fd,POLLIN,0};
         poll_args.push_back(pfd);
+
         for(Conn *conn:fd2Conn){
             if(!conn){
                 continue;
@@ -161,11 +199,16 @@ int main(){
 
         for(size_t i=1;i<poll_args.size();i++){
             uint32_t ready = poll_args[i].revents;
+            if(ready==0){
+                continue;
+            }
             Conn *conn = fd2Conn[poll_args[i].fd];
             if(ready & POLLIN){
+                assert(conn->want_read);
                 handle_read(conn);
             }
             if(ready & POLLOUT){
+                assert(conn->want_write);
                 handle_write(conn);
             }
 
