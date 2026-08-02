@@ -24,18 +24,22 @@ using namespace std;
 int main(){
     
     int fd = socket(AF_INET,SOCK_STREAM,0);
+    std::cout<<"Connection fd is: ";
+    std::cout<<fd<<"\n";
     if(fd<0){
         die("socket()");
     }
 
     int val = 1;
-    setsockopt(fd,SOL_SOCKET,SO_REUSEADDR,&val,sizeof(val));
-
+    // SOL_SOCKET = general socket option
+    // second parameter of setsockopt suggest the layer of TCP/IP 
+    setsockopt(fd,SOL_SOCKET, SO_REUSEADDR, &val, sizeof(val));
+    std::cout<<"socket is configured\n";
     //binding the socket
     struct sockaddr_in addr = {};
     addr.sin_family = AF_INET;
-    addr.sin_port = ntohs(1234);
-    addr.sin_addr.s_addr = ntohl(0);
+    addr.sin_port = htons(1234);
+    addr.sin_addr.s_addr = htonl(0);
 
 
     //typecasting &addr - generic c api accepting the base struct 
@@ -62,6 +66,7 @@ int main(){
 
     while(true){
         poll_args.clear();
+        std::cout<<"event loop is started\n";
 
         //listening socket in first position
         struct pollfd pfd= {fd,POLLIN,0};
@@ -82,6 +87,7 @@ int main(){
         }
 
         int rv = poll(poll_args.data(),(nfds_t)poll_args.size(),-1);
+
         if(rv<0 && errno==EINTR){
             continue;
         }
@@ -94,6 +100,7 @@ int main(){
                 if(fd2Conn.size() <= (size_t)conn->fd){
                     fd2Conn.resize(conn->fd+1);
                 }
+                std::cout<<"Client connected";
                 fd2Conn[conn->fd] = conn;
             }
         }

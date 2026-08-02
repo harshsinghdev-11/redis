@@ -4,6 +4,7 @@ using namespace std;
 
 
 void buf_append(vector<uint8_t>& buf,const uint8_t* data,size_t len){
+    std::cout<<data;
     buf.insert(buf.end(),data,data+len);
 }
 
