@@ -62,6 +62,10 @@ bool try_one_request(Conn *conn) {
     // 4. Process the parsed message.
     // 5. Remove the message from `Conn::incoming`.
     try_one_request(conn);
+    if (conn->outgoing.size() > 0) {    
+        conn->want_read = false;
+        conn->want_write = true;
+    }
 }
 
  void handle_write(Conn *conn) {
@@ -73,5 +77,8 @@ bool try_one_request(Conn *conn) {
     }
     // remove written data from `outgoing`
     buf_consume(conn->outgoing, (size_t)rv);
-    // ...
+     if (conn->outgoing.size() == 0) {   // 2. Written 1 response.
+        conn->want_read = true;         // 3. Wait for more data.
+        conn->want_write = false;
+    }
 }

@@ -73,7 +73,7 @@ int main(){
         std::cout<<"event loop is started\n";
 
         //listening socket in first position
-        struct pollfd pfd= {fd,POLLIN,0};
+        struct pollfd pfd= {fd,POLLIN | POLLOUT,0};
         poll_args.push_back(pfd);
 
         for(Conn *conn:fd2Conn){
@@ -81,18 +81,7 @@ int main(){
                 continue;
             }
             struct pollfd pfd = {conn->fd,POLLERR,0};
-            std::cout
-        << "fd="
-        << conn->fd
-        << " read="
-        << conn->want_read
-        << " write="
-        << conn->want_write
-        << " incoming="
-        << conn->incoming.size()
-        << " outgoing="
-        << conn->outgoing.size()
-        << std::endl;
+            std::cout<< "fd="<< conn->fd<< " read="<< conn->want_read<< " write="<< conn->want_write<< " incoming="<< conn->incoming.size()<< " outgoing="<< conn->outgoing.size()<< std::endl;
             if(conn->want_read){
                 pfd.events |= POLLIN;
             }
@@ -118,7 +107,7 @@ int main(){
                 if(fd2Conn.size() <= (size_t)conn->fd){
                     fd2Conn.resize(conn->fd+1);
                 }
-                std::cout<<"Client connected";
+                std::cout<<"Client connected"<<endl;
                 fd2Conn[conn->fd] = conn;
             }
         }
@@ -128,17 +117,21 @@ int main(){
             if(ready==0){
                 continue;
             }
+            cout<<"Enter in the handling of reading and writing"<<endl;
             Conn *conn = fd2Conn[poll_args[i].fd];
             if(ready & POLLIN){
                 assert(conn->want_read);
+                cout<<"POLLIN condition true"<<endl;
                 handle_read(conn);
             }
             if(ready & POLLOUT){
+                cout<<"Pollout condition true"<<endl;
                 assert(conn->want_write);
                 handle_write(conn);
             }
 
             if((ready & POLLERR) || conn->want_close){
+                cout<<"Closing the connection"<<endl;
                 (void)close(conn->fd);
                 fd2Conn[conn->fd] = NULL;
                 delete conn;
