@@ -45,6 +45,7 @@ int main(){
     //typecasting &addr - generic c api accepting the base struct 
     // a form of manual polymorphism
     int rv = bind(fd,(const sockaddr*)&addr,sizeof(addr));
+    
     if(rv){
         die("bind()");
     }
@@ -63,9 +64,12 @@ int main(){
 
     //
     vector<struct pollfd>poll_args;
+    int count = 0;
 
     while(true){
         poll_args.clear();
+        count++;
+        cout<<"Count is: "<<count<<endl;
         std::cout<<"event loop is started\n";
 
         //listening socket in first position
@@ -77,6 +81,18 @@ int main(){
                 continue;
             }
             struct pollfd pfd = {conn->fd,POLLERR,0};
+            std::cout
+        << "fd="
+        << conn->fd
+        << " read="
+        << conn->want_read
+        << " write="
+        << conn->want_write
+        << " incoming="
+        << conn->incoming.size()
+        << " outgoing="
+        << conn->outgoing.size()
+        << std::endl;
             if(conn->want_read){
                 pfd.events |= POLLIN;
             }
@@ -86,7 +102,9 @@ int main(){
             poll_args.push_back(pfd);
         }
 
+        cout<<"Calling poll...\n";
         int rv = poll(poll_args.data(),(nfds_t)poll_args.size(),-1);
+        cout<<"poll() returned: "<<rv<<"\n";
 
         if(rv<0 && errno==EINTR){
             continue;

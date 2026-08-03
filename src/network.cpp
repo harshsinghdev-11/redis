@@ -17,6 +17,7 @@ Conn *handle_accept(int fd) {
     // create a `struct Conn`
     Conn *conn = new Conn();
     conn->fd = connfd;
+    std::cout << "Client connected. fd = "<< conn->fd<< std::endl;
     conn->want_read = true; // read the 1st request
     return conn;
 }
@@ -33,6 +34,7 @@ bool try_one_request(Conn *conn) {
         conn->want_close = true;
         return false;   // want close
     }
+    std::cout<<"Message length = "<<len<<std::endl;
     // Protocol: message body
     if (4 + len > conn->incoming.size()) {
         return false;   // want read
@@ -53,6 +55,7 @@ bool try_one_request(Conn *conn) {
         conn->want_close = true;
         return;
     }
+    std::cout<<"Read"<<rv<<" bytes"<<std::endl;
     // 2. Add new data to the `Conn::incoming` buffer.
     buf_append(conn->incoming, buf, (size_t)rv);
     // 3. Try to parse the accumulated buffer.

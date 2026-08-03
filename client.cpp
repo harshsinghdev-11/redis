@@ -13,7 +13,7 @@ int main() {
         return 1;
     }
 
-    std::cout<<"\nhello";
+    std::cout<<"hello\n";
 
     // Server address
     sockaddr_in addr{};
