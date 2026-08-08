@@ -74,6 +74,7 @@ int main(){
 
         //listening socket in first position
         struct pollfd pfd= {fd,POLLIN | POLLOUT,0};
+        std::cout<<"event of pfd: "<<pfd.events<<std::endl;
         poll_args.push_back(pfd);
 
         for(Conn *conn:fd2Conn){
@@ -114,6 +115,7 @@ int main(){
 
         for(size_t i=1;i<poll_args.size();i++){
             uint32_t ready = poll_args[i].revents;
+            std::cout<<"ready events: "<<ready<<std::endl;
             if(ready==0){
                 continue;
             }
