@@ -3,11 +3,11 @@
 using namespace std;
 
 
-void buf_append(vector<uint8_t>& buf,const uint8_t* data,size_t len){
-    std::cout<<"data in buf_append"<<data<<std::endl;
-    buf.insert(buf.end(),data,data+len);
+void buf_append(std::vector<uint8_t> &buf, const uint8_t *data, size_t len) {
+    buf.insert(buf.end(), data, data + len);
 }
 
-void buf_consume(vector<uint8_t>& buf,size_t n){
-    buf.erase(buf.begin(),buf.begin()+n);
+
+void buf_consume(std::vector<uint8_t> &buf, size_t n) {
+    buf.erase(buf.begin(), buf.begin() + n);
 }
