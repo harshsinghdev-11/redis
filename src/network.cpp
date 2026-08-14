@@ -10,7 +10,7 @@ std::map<std::string, std::string> g_data;
 
 static const uint32_t k_max_msg = 1024 * 1024; 
 
-Conn *handle_accept(int fd) {
+Conn* handle_accept(int fd) {
     // accept
     struct sockaddr_in client_addr = {};
     socklen_t addrlen = sizeof(client_addr);
@@ -28,6 +28,69 @@ Conn *handle_accept(int fd) {
     conn->want_read = true; // read the 1st request
     return conn;
 }
+
+int32_t parse_req(const uint8_t *data,size_t size,std::vector<std::string>& out){
+
+    //data -> points to first byte of request
+    const uint8_t *end = data+size;
+    uint32_t nstr = 0;
+
+    // read_u32 reads the first four bytes for getting the number of string
+    if(!read_u32(data,end,nstr)){
+        return -1;
+    }
+    //                               data
+    //                                |    
+    //                                >
+    // after read_u32 => [ nstr ][ len=3 ][ SET ][ len=4 ][ name ][ len=5 ][ harsh ]
+    if(nstr>k_max_msg){
+        return -1;
+    }
+
+    while(out.size()<nstr){
+        uint32_t len = 0;
+        if(!read_u32(data,end,len)){
+            return -1;
+        }
+        out.push_back(std::string());
+        if(!read_str(data,end,len,out.back())){
+            return -1;
+        }
+    }
+
+    if(data!=end){
+        return -1;
+    }
+    return 0;
+}
+
+void do_request(std::vector<std::string> &cmd, Response &out) {
+    if (cmd.size() == 2 && cmd[0] == "get") {
+        auto it = g_data.find(cmd[1]);
+        if (it == g_data.end()) {
+            out.status = 0;    // not found
+            return;
+        }
+        const std::string &val = it->second;
+        out.data.assign(val.begin(), val.end());
+    } else if (cmd.size() == 3 && cmd[0] == "set") {
+        g_data[cmd[1]].swap(cmd[2]);
+    } else if (cmd.size() == 2 && cmd[0] == "del") {
+        g_data.erase(cmd[1]);
+    } else {
+        // unrecognized command
+        out.status = -1;       
+    }
+}
+
+
+void make_response(const Response &resp, std::vector<uint8_t> &out) {
+    uint32_t resp_len = 4 + (uint32_t)resp.data.size();
+    buf_append(out, (const uint8_t *)&resp_len, 4);
+    buf_append(out, (const uint8_t *)&resp.status, 4);
+    buf_append(out, resp.data.data(), resp.data.size());
+}
+
 
 bool try_one_request(Conn *conn) {
     // 3. Try to parse the accumulated buffer.
@@ -98,66 +161,6 @@ bool try_one_request(Conn *conn) {
 }
 
 
-int32_t parse_req(const uint8_t *data,size_t size,std::vector<std::string>& out){
-
-    //data -> points to first byte of request
-    const uint8_t *end = data+size;
-    uint32_t nstr = 0;
-
-    // read_u32 reads the first four bytes for getting the number of string
-    if(!read_u32(data,end,nstr)){
-        return -1;
-    }
-    //                               data
-    //                                |    
-    //                                >
-    // after read_u32 => [ nstr ][ len=3 ][ SET ][ len=4 ][ name ][ len=5 ][ harsh ]
-    if(nstr>k_max_msg){
-        return -1;
-    }
-
-    while(out.size()<nstr){
-        uint32_t len = 0;
-        if(!read_u32(data,end,len)){
-            return -1;
-        }
-        out.push_back(std::string());
-        if(!read_str(data,end,len,out.back())){
-            return -1;
-        }
-    }
-
-    if(data!=end){
-        return -1;
-    }
-    return 0;
-}
 
 
-
-void do_request(std::vector<std::string> &cmd, Response &out) {
-    if (cmd.size() == 2 && cmd[0] == "get") {
-        auto it = g_data.find(cmd[1]);
-        if (it == g_data.end()) {
-            out.status = 0;    // not found
-            return;
-        }
-        const std::string &val = it->second;
-        out.data.assign(val.begin(), val.end());
-    } else if (cmd.size() == 3 && cmd[0] == "set") {
-        g_data[cmd[1]].swap(cmd[2]);
-    } else if (cmd.size() == 2 && cmd[0] == "del") {
-        g_data.erase(cmd[1]);
-    } else {
-        // unrecognized command
-        out.status = -1;       
-    }
-}
-
-void make_response(const Response &resp, std::vector<uint8_t> &out) {
-    uint32_t resp_len = 4 + (uint32_t)resp.data.size();
-    buf_append(out, (const uint8_t *)&resp_len, 4);
-    buf_append(out, (const uint8_t *)&resp.status, 4);
-    buf_append(out, resp.data.data(), resp.data.size());
-}
 
