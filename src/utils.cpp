@@ -30,6 +30,7 @@ bool read_str(const uint8_t *&curr,const uint8_t *end,size_t n,std::string &out)
         return false;
     }
     out.assign(curr,curr+n);
+    std::cout<<"string data: "<<out<<std::endl;
     curr+=n;
     return true;
     
