@@ -130,6 +130,10 @@ int main() {
     if(!connect_to_server(fd)){
         std::cout<<"Error in connecting to server";
     }
+    std::vector<std::string>cmd = {"set","name","Harsh"};
+     std::vector<uint8_t>request = make_request(cmd); 
+    send_request(fd,request);
+    while(!receive_response(fd)){}
 
     std::vector<std::string>cmd2 = {"get","name"};
     std::vector<uint8_t>request2 = make_request(cmd2);

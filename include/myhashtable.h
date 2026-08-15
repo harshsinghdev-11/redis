@@ -33,7 +33,7 @@ public:
 
     bool set(const std::string& key,const std::string& value);
 
-    bool get(const std::string& key,std::string& value);
+    std::string get(const std::string& key);
 
     bool erase(const std::string& key);
 

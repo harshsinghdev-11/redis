@@ -3,11 +3,9 @@
 #include "utils.h"
 #include <response.h>
 #include <iostream>
-#include <map>
+#include "myhashtable.h"
 
-
-std::map<std::string, std::string> g_data;
-
+Hashtable g_data(30);
 static const uint32_t k_max_msg = 1024 * 1024; 
 
 Conn* handle_accept(int fd) {
@@ -66,16 +64,16 @@ int32_t parse_req(const uint8_t *data,size_t size,std::vector<std::string>& out)
 
 void do_request(std::vector<std::string> &cmd, Response &out) {
     if (cmd.size() == 2 && cmd[0] == "get") {
-        auto it = g_data.find(cmd[1]);
-        if (it == g_data.end()) {
-            out.status = 0;    // not found
+
+        std::string val = g_data.get(cmd[1]);
+        if(val=="Key Doesn't exist"){
+            out.status = 0;
             return;
         }
-        const std::string &val = it->second;
         out.data.assign(val.begin(), val.end());
     } else if (cmd.size() == 3 && cmd[0] == "set") {
-        g_data[cmd[1]].swap(cmd[2]);
-    } else if (cmd.size() == 2 && cmd[0] == "del") {
+        g_data.set(cmd[1],cmd[2]);
+    } else if (cmd.size() == 2 && cmd[0] == "erase") {
         g_data.erase(cmd[1]);
     } else {
         // unrecognized command
