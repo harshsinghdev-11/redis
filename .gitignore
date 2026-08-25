@@ -1,1 +1,5 @@
 .vscode
+output
+server
+benchmark_client
+benchmarkV2

@@ -37,10 +37,6 @@ int32_t parse_req(const uint8_t *data,size_t size,std::vector<std::string>& out)
     if(!read_u32(data,end,nstr)){
         return -1;
     }
-    //                               data
-    //                                |    
-    //                                >
-    // after read_u32 => [ nstr ][ len=3 ][ SET ][ len=4 ][ name ][ len=5 ][ harsh ]
     if(nstr>k_max_msg){
         return -1;
     }
