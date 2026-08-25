@@ -19,6 +19,12 @@ The project focuses on understanding how a basic database server works internall
 - Incremental rehashing
 - Benchmarking with multiple concurrent clients
 
+## Benchmark Metrics
+
+* [Metrics for Single Client](benchmark/firstBenchmark.md)
+* [Metrics for Multiple Clients](benchmark/2_benchmark.md)
+
+
 ## Architecture
 
 ```text
@@ -43,3 +49,4 @@ poll() Event Loop
    ├── Create Response
    |
    └── Write Response
+
