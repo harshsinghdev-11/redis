@@ -29,7 +29,6 @@ Conn* handle_accept(int fd) {
 
 int32_t parse_req(const uint8_t *data,size_t size,std::vector<std::string>& out){
 
-    //data -> points to first byte of request
     const uint8_t *end = data+size;
     uint32_t nstr = 0;
 
@@ -87,11 +86,11 @@ void make_response(const Response &resp, std::vector<uint8_t> &out) {
 
 
 bool try_one_request(Conn *conn) {
-    // 3. Try to parse the accumulated buffer.
-    // Protocol: message header
+    //5
     if (conn->incoming.size() < 4) {
-        return false;   // want read
+        return false;
     }
+
     uint32_t len = 0;
     memcpy(&len, conn->incoming.data(), 4);
     if (len > k_max_msg) { 
@@ -99,9 +98,10 @@ bool try_one_request(Conn *conn) {
         return false; 
     }
     std::cout<<"Message length = "<<len<<std::endl;
-    // Protocol: message body
+
+    //it should always return false
     if (4 + len > conn->incoming.size()) {
-        return false;   // want read
+        return false;
     }
     const uint8_t *request = &conn->incoming[4];
     std::vector<std::string>cmd;
@@ -118,7 +118,7 @@ bool try_one_request(Conn *conn) {
     return true;      
 }
 
- void handle_read(Conn *conn) {
+void handle_read(Conn *conn) {
     uint8_t buf[64 * 1024];
     ssize_t rv = read(conn->fd, buf, sizeof(buf));
     if (rv <= 0) {  
@@ -153,8 +153,4 @@ bool try_one_request(Conn *conn) {
         conn->want_write = false;
     }
 }
-
-
-
-
 
