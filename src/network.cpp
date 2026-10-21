@@ -69,8 +69,13 @@ void do_request(std::vector<std::string> &cmd, Response &out) {
         out.data.assign(val.begin(), val.end());
     } else if (cmd.size() == 3 && cmd[0] == "set") {
         g_data.set(cmd[1],cmd[2]);
+
+        return;
     } else if (cmd.size() == 2 && cmd[0] == "erase") {
-        g_data.erase(cmd[1]);
+        if(g_data.erase(cmd[1])){
+            out.status=1;
+        }
+        out.status=-1;
     } else {
         // unrecognized command
         out.status = -1;       
