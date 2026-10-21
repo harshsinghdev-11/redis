@@ -4,6 +4,9 @@
 #include <response.h>
 #include <iostream>
 #include "myhashtable.h"
+#include "serialisation.h"
+#include <bits/stdc++.h>
+using namespace std;
 
 Hashtable g_data(30);
 static const uint32_t k_max_msg = 1024 * 1024; 
@@ -13,7 +16,7 @@ Conn* handle_accept(int fd) {
     struct sockaddr_in client_addr = {};
     socklen_t addrlen = sizeof(client_addr);
     int connfd = accept(fd, (struct sockaddr *)&client_addr, &addrlen);
-    std::cout<<"Accepting connection, fd = "<<connfd<<std::endl;
+    cout<<"Accepting connection, fd = "<<connfd<<endl;
     if (connfd < 0) {
         return NULL;
     }
@@ -22,12 +25,12 @@ Conn* handle_accept(int fd) {
 
     Conn *conn = new Conn();
     conn->fd = connfd;
-    std::cout << "Client connected. fd = "<< conn->fd<< std::endl;
+    cout << "Client connected. fd = "<< conn->fd<< endl;
     conn->want_read = true; // read the 1st request
     return conn;
 }
 
-int32_t parse_req(const uint8_t *data,size_t size,std::vector<std::string>& out){
+int32_t parse_req(const uint8_t *data,size_t size,vector<string>& out){
 
     //data -> points to first byte of request
     const uint8_t *end = data+size;
@@ -46,7 +49,7 @@ int32_t parse_req(const uint8_t *data,size_t size,std::vector<std::string>& out)
         if(!read_u32(data,end,len)){
             return -1;
         }
-        out.push_back(std::string());
+        out.push_back(string());
         if(!read_str(data,end,len,out.back())){
             return -1;
         }
@@ -58,36 +61,35 @@ int32_t parse_req(const uint8_t *data,size_t size,std::vector<std::string>& out)
     return 0;
 }
 
-void do_request(std::vector<std::string> &cmd, Response &out) {
+void do_request(vector<string> &cmd, tempBuffer &out) {
     if (cmd.size() == 2 && cmd[0] == "get") {
 
-        std::string val = g_data.get(cmd[1]);
+        string val = g_data.get(cmd[1]);
         if(val=="Key Doesn't exist"){
-            out.status = 0;
-            return;
+            string err_string = "Key Doesn't exist";
+            out_err(out,404,err_string);
         }
-        out.data.assign(val.begin(), val.end());
+        out_str(out,val);
+        return;
     } else if (cmd.size() == 3 && cmd[0] == "set") {
         g_data.set(cmd[1],cmd[2]);
-
+        out_nil(out);
         return;
     } else if (cmd.size() == 2 && cmd[0] == "erase") {
-        if(g_data.erase(cmd[1])){
-            out.status=1;
-        }
-        out.status=-1;
+        out_nil(out);
     } else {
-        // unrecognized command
-        out.status = -1;       
+        string err_string = "unrecognized command";
+        out_err(out,404,err_string);       
     }
 }
 
 
-void make_response(const Response &resp, std::vector<uint8_t> &out) {
-    uint32_t resp_len = 4 + (uint32_t)resp.data.size();
-    buf_append(out, (const uint8_t *)&resp_len, 4);
-    buf_append(out, (const uint8_t *)&resp.status, 4);
-    buf_append(out, resp.data.data(), resp.data.size());
+void make_response(vector<uint8_t> &resp, vector<uint8_t> &outgoing) {
+
+    uint32_t len = static_cast<uint32_t>(resp.size());
+    const auto* header = reinterpret_cast<const uint8_t*>(&len);
+    outgoing.insert(outgoing.end(),header,header+4);
+    outgoing.insert(outgoing.end(),resp.begin(),resp.end());
 }
 
 
@@ -103,23 +105,22 @@ bool try_one_request(Conn *conn) {
         conn->want_close = true;
         return false; 
     }
-    std::cout<<"Message length = "<<len<<std::endl;
+    cout<<"Message length = "<<len<<endl;
     // Protocol: message body
     if (4 + len > conn->incoming.size()) {
         return false;   // want read
     }
     const uint8_t *request = &conn->incoming[4];
-    std::vector<std::string>cmd;
+    vector<string>cmd;
     if(parse_req(request,len,cmd)<0){
         conn->want_close = true;
         return false;
     }
 
-    Response resp;
+    vector<uint8_t>resp;
     do_request(cmd,resp);
     make_response(resp,conn->outgoing);
-
-    buf_consume(conn->incoming, 4 + len);
+    conn->incoming.erase(conn->incoming.begin(),conn->incoming.begin()+4+len);
     return true;      
 }
 
@@ -130,7 +131,7 @@ bool try_one_request(Conn *conn) {
         conn->want_close = true;
         return;
     }
-    std::cout<<"Read "<<rv<<" bytes"<<std::endl;
+    cout<<"Read "<<rv<<" bytes"<<endl;
   
     buf_append(conn->incoming, buf, (size_t)rv);
     while(try_one_request(conn));
@@ -147,12 +148,12 @@ bool try_one_request(Conn *conn) {
     if (rv < 0 && errno == EAGAIN) {
         return;
     }
-     if (rv < 0) {
+     if (rv <= 0) {
         conn->want_close = true;
         return;
     }
-
-    buf_consume(conn->outgoing, (size_t)rv);
+    size_t written_bytes = static_cast<size_t>(rv);
+    conn->outgoing.erase(conn->outgoing.begin(),conn->outgoing.begin()+written_bytes);
      if (conn->outgoing.size() == 0) {  
         conn->want_read = true;
         conn->want_write = false;
