@@ -50,4 +50,8 @@ poll() Event Loop
    |
    └── Write Response
 
+<<<<<<< HEAD
+=======
+## command
+>>>>>>> dc91542 (working on cliet for serialisation)
 g++ -std=c++17 -Wall -Wextra -Iinclude src/*.cpp -o redis_server
