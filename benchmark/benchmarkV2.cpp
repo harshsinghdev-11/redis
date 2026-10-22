@@ -14,16 +14,14 @@
 #include <fcntl.h>
 #include <cerrno>
 
-
 using namespace std;
 
-static constexpr const char* SERVER_IP = "127.0.0.1";
+static constexpr const char *SERVER_IP = "127.0.0.1";
 static constexpr uint16_t SERVER_PORT = 1234;
 
 // Number of requests allowed to be outstanding
 // per client connection.
 static constexpr size_t PIPELINE_DEPTH = 32;
-
 
 // ============================================================
 // Timing
@@ -31,12 +29,12 @@ static constexpr size_t PIPELINE_DEPTH = 32;
 
 using Clock = chrono::steady_clock;
 
-
 // ============================================================
 // Request / Response structures
 // ============================================================
 
-struct RequestState {
+struct RequestState
+{
     vector<uint8_t> data;
 
     size_t sent = 0;
@@ -44,8 +42,8 @@ struct RequestState {
     Clock::time_point start_time;
 };
 
-
-struct Client {
+struct Client
+{
     int fd = -1;
 
     size_t requests_sent = 0;
@@ -69,30 +67,27 @@ struct Client {
     size_t response_received = 0;
 };
 
-
 // ============================================================
 // Serialization
 // ============================================================
 
 void append_u32(
-    vector<uint8_t>& buffer,
-    uint32_t value
-) {
-    const uint8_t* bytes =
-        reinterpret_cast<const uint8_t*>(&value);
+    vector<uint8_t> &buffer,
+    uint32_t value)
+{
+    const uint8_t *bytes =
+        reinterpret_cast<const uint8_t *>(&value);
 
     buffer.insert(
         buffer.end(),
         bytes,
-        bytes + sizeof(value)
-    );
+        bytes + sizeof(value));
 }
 
-
 void append_string(
-    vector<uint8_t>& buffer,
-    const string& str
-) {
+    vector<uint8_t> &buffer,
+    const string &str)
+{
     uint32_t len =
         static_cast<uint32_t>(str.size());
 
@@ -101,10 +96,8 @@ void append_string(
     buffer.insert(
         buffer.end(),
         str.begin(),
-        str.end()
-    );
+        str.end());
 }
-
 
 // Your protocol:
 //
@@ -115,8 +108,8 @@ void append_string(
 // ...
 
 vector<uint8_t> make_request(
-    const vector<string>& command
-) {
+    const vector<string> &command)
+{
     vector<uint8_t> body;
 
     uint32_t number_of_strings =
@@ -124,10 +117,10 @@ vector<uint8_t> make_request(
 
     append_u32(
         body,
-        number_of_strings
-    );
+        number_of_strings);
 
-    for (const string& str : command) {
+    for (const string &str : command)
+    {
         append_string(body, str);
     }
 
@@ -138,32 +131,30 @@ vector<uint8_t> make_request(
 
     append_u32(
         request,
-        body_size
-    );
+        body_size);
 
     request.insert(
         request.end(),
         body.begin(),
-        body.end()
-    );
+        body.end());
 
     return request;
 }
-
 
 // ============================================================
 // Socket
 // ============================================================
 
-int create_socket() {
+int create_socket()
+{
 
     int fd = socket(
         AF_INET,
         SOCK_STREAM,
-        0
-    );
+        0);
 
-    if (fd < 0) {
+    if (fd < 0)
+    {
         perror("socket");
         exit(EXIT_FAILURE);
     }
@@ -171,12 +162,13 @@ int create_socket() {
     return fd;
 }
 
-
-void set_nonblocking(int fd) {
+void set_nonblocking(int fd)
+{
 
     int flags = fcntl(fd, F_GETFL, 0);
 
-    if (flags < 0) {
+    if (flags < 0)
+    {
         perror("fcntl");
         exit(EXIT_FAILURE);
     }
@@ -184,16 +176,16 @@ void set_nonblocking(int fd) {
     if (fcntl(
             fd,
             F_SETFL,
-            flags | O_NONBLOCK
-        ) < 0) {
+            flags | O_NONBLOCK) < 0)
+    {
 
         perror("fcntl");
         exit(EXIT_FAILURE);
     }
 }
 
-
-void connect_to_server(int fd) {
+void connect_to_server(int fd)
+{
 
     sockaddr_in addr{};
 
@@ -203,15 +195,14 @@ void connect_to_server(int fd) {
     inet_pton(
         AF_INET,
         SERVER_IP,
-        &addr.sin_addr
-    );
+        &addr.sin_addr);
 
     // We initially connect using blocking connect.
     if (connect(
             fd,
-            reinterpret_cast<sockaddr*>(&addr),
-            sizeof(addr)
-        ) < 0) {
+            reinterpret_cast<sockaddr *>(&addr),
+            sizeof(addr)) < 0)
+    {
 
         perror("connect");
         close(fd);
@@ -221,20 +212,20 @@ void connect_to_server(int fd) {
     set_nonblocking(fd);
 }
 
-
 // ============================================================
 // Create command
 // ============================================================
 
 vector<string> make_command(
-    const string& operation,
-    size_t request_id
-) {
+    const string &operation,
+    size_t request_id)
+{
     string key =
         "bench_key_" +
         to_string(request_id);
 
-    if (operation == "SET") {
+    if (operation == "SET")
+    {
 
         string value =
             "bench_value_" +
@@ -243,30 +234,28 @@ vector<string> make_command(
         return {
             "set",
             key,
-            value
-        };
+            value};
     }
 
-    if (operation == "GET") {
+    if (operation == "GET")
+    {
 
         return {
             "get",
-            key
-        };
+            key};
     }
 
-    if (operation == "ERASE") {
+    if (operation == "ERASE")
+    {
 
         return {
             "erase",
-            key
-        };
+            key};
     }
 
     cerr << "Unknown operation\n";
     exit(EXIT_FAILURE);
 }
-
 
 // ============================================================
 // Response parser
@@ -280,25 +269,28 @@ vector<string> make_command(
 // ============================================================
 
 bool process_response(
-    Client& client,
-    vector<double>& latencies
-) {
-    while (true) {
+    Client &client,
+    vector<double> &latencies)
+{
+    while (true)
+    {
 
         // Need response length first.
-        if (client.waiting_for_length) {
+        if (client.waiting_for_length)
+        {
 
-            if (client.response_buffer.size() < 4) {
+            if (client.response_buffer.size() < 4)
+            {
                 return true;
             }
 
             memcpy(
                 &client.response_length,
                 client.response_buffer.data(),
-                4
-            );
+                4);
 
-            if (client.response_length < 4) {
+            if (client.response_length < 4)
+            {
                 cerr << "Invalid response length\n";
                 return false;
             }
@@ -310,18 +302,18 @@ bool process_response(
             client.waiting_for_body = true;
         }
 
-
         // Need complete response.
         if (client.response_buffer.size() <
-            client.response_expected) {
+            client.response_expected)
+        {
 
             return true;
         }
 
-
         // We received one complete response.
 
-        if (client.outstanding.empty()) {
+        if (client.outstanding.empty())
+        {
             cerr << "No matching outstanding request\n";
             return false;
         }
@@ -333,27 +325,21 @@ bool process_response(
 
         double latency_us =
             chrono::duration<double, micro>(
-                now - request_start
-            ).count();
+                now - request_start)
+                .count();
 
         latencies.push_back(
-            latency_us
-        );
+            latency_us);
 
         client.outstanding.erase(
-            client.outstanding.begin()
-        );
+            client.outstanding.begin());
 
         client.requests_completed++;
-
 
         // Remove consumed response.
         client.response_buffer.erase(
             client.response_buffer.begin(),
-            client.response_buffer.begin()
-                + client.response_expected
-        );
-
+            client.response_buffer.begin() + client.response_expected);
 
         // Reset parser.
         client.response_length = 0;
@@ -362,31 +348,30 @@ bool process_response(
         client.waiting_for_length = true;
         client.waiting_for_body = false;
 
-
         // Continue in case multiple responses
         // arrived in a single recv().
     }
 }
-
 
 // ============================================================
 // Send pending request
 // ============================================================
 
 bool send_request(
-    Client& client,
-    RequestState& request
-) {
-    while (request.sent < request.data.size()) {
+    Client &client,
+    RequestState &request)
+{
+    while (request.sent < request.data.size())
+    {
 
         ssize_t rv = send(
             client.fd,
             request.data.data() + request.sent,
             request.data.size() - request.sent,
-            0
-        );
+            0);
 
-        if (rv > 0) {
+        if (rv > 0)
+        {
 
             request.sent +=
                 static_cast<size_t>(rv);
@@ -396,12 +381,14 @@ bool send_request(
 
         if (rv < 0 &&
             (errno == EAGAIN ||
-             errno == EWOULDBLOCK)) {
+             errno == EWOULDBLOCK))
+        {
 
             return true;
         }
 
-        if (rv < 0) {
+        if (rv < 0)
+        {
             perror("send");
             return false;
         }
@@ -412,38 +399,32 @@ bool send_request(
     return true;
 }
 
-
 // ============================================================
 // Fill pipeline
 // ============================================================
 
 bool fill_pipeline(
-    Client& client,
-    const string& operation,
+    Client &client,
+    const string &operation,
     size_t requests_per_client,
     size_t global_client_id,
-    vector<double>& latencies
-) {
+    vector<double> &latencies)
+{
 
     while (
-        client.outstanding.size()
-            < PIPELINE_DEPTH
-        &&
-        client.requests_sent
-            < requests_per_client
-    ) {
+        client.outstanding.size() < PIPELINE_DEPTH &&
+        client.requests_sent < requests_per_client)
+    {
 
         size_t request_id =
             global_client_id *
-                requests_per_client
-            +
+                requests_per_client +
             client.requests_sent;
 
         vector<string> command =
             make_command(
                 operation,
-                request_id
-            );
+                request_id);
 
         RequestState request;
 
@@ -456,16 +437,15 @@ bool fill_pipeline(
             Clock::now();
 
         client.outstanding.push_back(
-            std::move(request)
-        );
+            std::move(request));
 
-        RequestState& current =
+        RequestState &current =
             client.outstanding.back();
 
         if (!send_request(
                 client,
-                current
-            )) {
+                current))
+        {
 
             return false;
         }
@@ -473,11 +453,13 @@ bool fill_pipeline(
         // If the complete request was sent,
         // count it.
         if (current.sent ==
-            current.data.size()) {
+            current.data.size())
+        {
 
             client.requests_sent++;
         }
-        else {
+        else
+        {
             // Partial send.
             //
             // For this benchmark implementation
@@ -489,44 +471,45 @@ bool fill_pipeline(
     return true;
 }
 
-
 // ============================================================
 // Receive data
 // ============================================================
 
 bool receive_data(
-    Client& client,
-    vector<double>& latencies
-) {
+    Client &client,
+    vector<double> &latencies)
+{
 
     uint8_t buffer[64 * 1024];
 
-    while (true) {
+    while (true)
+    {
 
         ssize_t rv = recv(
             client.fd,
             buffer,
             sizeof(buffer),
-            0
-        );
+            0);
 
-        if (rv > 0) {
+        if (rv > 0)
+        {
 
             client.response_buffer.insert(
                 client.response_buffer.end(),
                 buffer,
-                buffer + rv
-            );
+                buffer + rv);
 
             continue;
         }
 
-        if (rv == 0) {
+        if (rv == 0)
+        {
             return false;
         }
 
         if (errno == EAGAIN ||
-            errno == EWOULDBLOCK) {
+            errno == EWOULDBLOCK)
+        {
 
             break;
         }
@@ -537,16 +520,15 @@ bool receive_data(
 
     return process_response(
         client,
-        latencies
-    );
+        latencies);
 }
-
 
 // ============================================================
 // Result
 // ============================================================
 
-struct Result {
+struct Result
+{
 
     double total_ms = 0;
 
@@ -563,33 +545,30 @@ struct Result {
     size_t completed = 0;
 };
 
-
 // ============================================================
 // Percentile
 // ============================================================
 
 double calculate_percentile(
     vector<double> values,
-    double percentile
-) {
-    if (values.empty()) {
+    double percentile)
+{
+    if (values.empty())
+    {
         return 0;
     }
 
     sort(
         values.begin(),
-        values.end()
-    );
+        values.end());
 
     size_t index =
         static_cast<size_t>(
             percentile *
-            (values.size() - 1)
-        );
+            (values.size() - 1));
 
     return values[index];
 }
-
 
 // ============================================================
 // Benchmark
@@ -598,12 +577,11 @@ double calculate_percentile(
 Result benchmark(
     size_t client_count,
     size_t requests_per_client,
-    const string& operation
-) {
+    const string &operation)
+{
 
     vector<Client> clients(
-        client_count
-    );
+        client_count);
 
     // --------------------------------------------------------
     // Create connections
@@ -611,16 +589,15 @@ Result benchmark(
 
     for (size_t i = 0;
          i < client_count;
-         i++) {
+         i++)
+    {
 
         clients[i].fd =
             create_socket();
 
         connect_to_server(
-            clients[i].fd
-        );
+            clients[i].fd);
     }
-
 
     // --------------------------------------------------------
     // Initial pipeline
@@ -630,27 +607,26 @@ Result benchmark(
 
     latencies.reserve(
         client_count *
-        requests_per_client
-    );
+        requests_per_client);
 
     for (size_t i = 0;
          i < client_count;
-         i++) {
+         i++)
+    {
 
         if (!fill_pipeline(
                 clients[i],
                 operation,
                 requests_per_client,
                 i,
-                latencies
-            )) {
+                latencies))
+        {
 
             cerr << "Failed to fill pipeline\n";
 
             exit(EXIT_FAILURE);
         }
     }
-
 
     // --------------------------------------------------------
     // Event loop
@@ -664,16 +640,16 @@ Result benchmark(
     while (
         total_completed <
         client_count *
-        requests_per_client
-    ) {
+            requests_per_client)
+    {
 
         vector<pollfd> poll_fds(
-            client_count
-        );
+            client_count);
 
         for (size_t i = 0;
              i < client_count;
-             i++) {
+             i++)
+        {
 
             poll_fds[i].fd =
                 clients[i].fd;
@@ -684,14 +660,14 @@ Result benchmark(
             // If there are partially-sent requests,
             // monitor POLLOUT.
             for (
-                const auto& request :
-                clients[i].outstanding
-            ) {
+                const auto &request :
+                clients[i].outstanding)
+            {
 
                 if (
                     request.sent <
-                    request.data.size()
-                ) {
+                    request.data.size())
+                {
 
                     poll_fds[i].events |=
                         POLLOUT;
@@ -701,16 +677,16 @@ Result benchmark(
             }
         }
 
-
         int rv = poll(
             poll_fds.data(),
             poll_fds.size(),
-            -1
-        );
+            -1);
 
-        if (rv < 0) {
+        if (rv < 0)
+        {
 
-            if (errno == EINTR) {
+            if (errno == EINTR)
+            {
                 continue;
             }
 
@@ -718,38 +694,38 @@ Result benchmark(
             exit(EXIT_FAILURE);
         }
 
-
         // ----------------------------------------------------
         // Handle clients
         // ----------------------------------------------------
 
         for (size_t i = 0;
              i < client_count;
-             i++) {
+             i++)
+        {
 
-            Client& client =
+            Client &client =
                 clients[i];
 
             short events =
                 poll_fds[i].revents;
 
-
-            if (events & POLLOUT) {
+            if (events & POLLOUT)
+            {
 
                 for (
-                    auto& request :
-                    client.outstanding
-                ) {
+                    auto &request :
+                    client.outstanding)
+                {
 
                     if (
                         request.sent <
-                        request.data.size()
-                    ) {
+                        request.data.size())
+                    {
 
                         if (!send_request(
                                 client,
-                                request
-                            )) {
+                                request))
+                        {
 
                             cerr << "send failed\n";
                             exit(EXIT_FAILURE);
@@ -760,16 +736,16 @@ Result benchmark(
                 }
             }
 
-
-            if (events & POLLIN) {
+            if (events & POLLIN)
+            {
 
                 size_t before =
                     client.requests_completed;
 
                 if (!receive_data(
                         client,
-                        latencies
-                    )) {
+                        latencies))
+                {
 
                     cerr << "receive failed\n";
                     exit(EXIT_FAILURE);
@@ -782,18 +758,16 @@ Result benchmark(
                     after - before;
             }
 
-
             if (
                 events &
                 (POLLERR |
                  POLLHUP |
-                 POLLNVAL)
-            ) {
+                 POLLNVAL))
+            {
 
                 cerr << "Socket error\n";
                 exit(EXIT_FAILURE);
             }
-
 
             // ------------------------------------------------
             // Fill pipeline again
@@ -801,16 +775,16 @@ Result benchmark(
 
             if (
                 client.requests_sent <
-                requests_per_client
-            ) {
+                requests_per_client)
+            {
 
                 if (!fill_pipeline(
                         client,
                         operation,
                         requests_per_client,
                         i,
-                        latencies
-                    )) {
+                        latencies))
+                {
 
                     cerr << "Failed to fill pipeline\n";
                     exit(EXIT_FAILURE);
@@ -819,20 +793,18 @@ Result benchmark(
         }
     }
 
-
     auto total_end =
         Clock::now();
-
 
     // --------------------------------------------------------
     // Close clients
     // --------------------------------------------------------
 
-    for (Client& client : clients) {
+    for (Client &client : clients)
+    {
 
         close(client.fd);
     }
-
 
     // --------------------------------------------------------
     // Calculate results
@@ -841,8 +813,8 @@ Result benchmark(
     double total_seconds =
         chrono::duration<double>(
             total_end -
-            total_start
-        ).count();
+            total_start)
+            .count();
 
     Result result;
 
@@ -856,12 +828,14 @@ Result benchmark(
         total_completed /
         total_seconds;
 
-    if (!latencies.empty()) {
+    if (!latencies.empty())
+    {
 
         double sum = 0;
 
         for (double latency :
-             latencies) {
+             latencies)
+        {
 
             sum += latency;
         }
@@ -873,25 +847,21 @@ Result benchmark(
         result.p50_us =
             calculate_percentile(
                 latencies,
-                0.50
-            );
+                0.50);
 
         result.p95_us =
             calculate_percentile(
                 latencies,
-                0.95
-            );
+                0.95);
 
         result.p99_us =
             calculate_percentile(
                 latencies,
-                0.99
-            );
+                0.99);
     }
 
     return result;
 }
-
 
 // ============================================================
 // Print
@@ -900,9 +870,9 @@ Result benchmark(
 void print_result(
     size_t clients,
     size_t requests_per_client,
-    const string& operation,
-    const Result& result
-) {
+    const string &operation,
+    const Result &result)
+{
 
     cout << "\n";
     cout << "============================================\n";
@@ -920,7 +890,7 @@ void print_result(
 
     cout << "Total requests       : "
          << clients *
-            requests_per_client
+                requests_per_client
          << "\n";
 
     cout << "Completed            : "
@@ -954,14 +924,15 @@ void print_result(
     cout << "============================================\n";
 }
 
-
 // ============================================================
 // Main
 // ============================================================
 
-int main(int argc, char* argv[]) {
+int main(int argc, char *argv[])
+{
 
-    if (argc != 4) {
+    if (argc != 4)
+    {
 
         cout << "Usage:\n";
 
@@ -989,7 +960,6 @@ int main(int argc, char* argv[]) {
         return 1;
     }
 
-
     size_t clients =
         stoull(argv[1]);
 
@@ -999,12 +969,11 @@ int main(int argc, char* argv[]) {
     string operation =
         argv[3];
 
-
     if (
         operation != "SET" &&
         operation != "GET" &&
-        operation != "ERASE"
-    ) {
+        operation != "ERASE")
+    {
 
         cerr
             << "Operation must be "
@@ -1012,7 +981,6 @@ int main(int argc, char* argv[]) {
 
         return 1;
     }
-
 
     cout << "\nStarting benchmark...\n";
 
@@ -1027,22 +995,17 @@ int main(int argc, char* argv[]) {
          << operation
          << "\n";
 
-
     Result result =
         benchmark(
             clients,
             requests_per_client,
-            operation
-        );
-
+            operation);
 
     print_result(
         clients,
         requests_per_client,
         operation,
-        result
-    );
-
+        result);
 
     return 0;
 }

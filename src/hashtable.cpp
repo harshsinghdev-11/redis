@@ -157,8 +157,7 @@ bool Hashtable::set(const std::string& key,const std::string& value){
     return true;
 }
 
-std::string Hashtable::get(const std::string& key
-){
+std::string Hashtable::get(const std::string& key){
     help_rehashing();
     size_t new_index = hash(key) % newer.size();
 
@@ -195,10 +194,7 @@ std::string Hashtable::get(const std::string& key
     return value;
 }
 
-bool Hashtable::erase(
-    const std::string& key
-)
-{
+bool Hashtable::erase(const std::string& key){
     help_rehashing();
 
     size_t new_index = hash(key) % newer.size();
