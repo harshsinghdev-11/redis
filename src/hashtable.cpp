@@ -49,10 +49,8 @@ uint32_t Hashtable::hash(const std::string& key)
 }
 
 
-double Hashtable::load_factor() const
-{
-    return static_cast<double>(size)
-           / newer.size();
+double Hashtable::load_factor() const{
+    return static_cast<double>(size)/ newer.size();
 }
 
 bool Hashtable::is_rehashing() const{
