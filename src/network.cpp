@@ -87,6 +87,8 @@ void do_request(vector<string> &cmd, tempBuffer &out) {
 void make_response(vector<uint8_t> &resp, vector<uint8_t> &outgoing) {
 
     uint32_t len = static_cast<uint32_t>(resp.size());
+    cout<<"response size after setting TAG : "<<resp.size()<<endl;
+    cout<<"response size after setting TAG : "<<len<<endl;
     const auto* header = reinterpret_cast<const uint8_t*>(&len);
     outgoing.insert(outgoing.end(),header,header+4);
     outgoing.insert(outgoing.end(),resp.begin(),resp.end());

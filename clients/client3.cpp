@@ -101,27 +101,19 @@ bool send_request(int fd,std::vector<uint8_t>&request){
 bool receive_response(int fd) {
     uint8_t buffer[4096];
 
-    ssize_t rv = recv(
-        fd,
-        buffer,
-        sizeof(buffer),
-        0
-    );
+    ssize_t rv = recv(fd,buffer,sizeof(buffer),0);
 
 
     if (rv < 0) {
         return false;
     }
 
-    std::cout << "Received "
-              << rv
-              << " bytes\n";
+    std::cout << "Received "<< rv<< " bytes\n";
 
     for (ssize_t i = 0; i < rv; i++) {
         std::cout << buffer[i] << " ";
     }
-
-    std::cout << "\n";
+    std::cout << std::endl;
     return true;
 }
 
