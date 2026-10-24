@@ -50,3 +50,4 @@ poll() Event Loop
    |
    └── Write Response
 
+g++ -std=c++17 -Wall -Wextra -Iinclude src/*.cpp -o redis_server
