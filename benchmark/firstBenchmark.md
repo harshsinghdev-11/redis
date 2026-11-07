@@ -13,7 +13,7 @@ P50 latency      : 154.222 us
 P95 latency      : 315.326 us
 P99 latency      : 413.023 us
 ========================================
-root@harshlaptop:~/redisC++# ./benchmark_client GET 1000
+./benchmark_client GET 1000
 
 ========================================
 Benchmark: GET
@@ -26,7 +26,7 @@ P50 latency      : 126.723 us
 P95 latency      : 251.403 us
 P99 latency      : 311.113 us
 ========================================
-root@harshlaptop:~/redisC++# ./benchmark_client ERASE 1000
+./benchmark_client ERASE 1000
 
 ========================================
 Benchmark: ERASE
@@ -39,7 +39,7 @@ P50 latency      : 121.317 us
 P95 latency      : 236.612 us
 P99 latency      : 320.656 us
 ========================================
-root@harshlaptop:~/redisC++# ./benchmark_client SET 100000
+./benchmark_client SET 100000
 
 ========================================
 Benchmark: SET
@@ -52,7 +52,7 @@ P50 latency      : 132.974 us
 P95 latency      : 236.044 us
 P99 latency      : 303.707 us
 ========================================
-root@harshlaptop:~/redisC++# ./benchmark_client GET 100000
+./benchmark_client GET 100000
 
 ========================================
 Benchmark: GET
@@ -65,7 +65,7 @@ P50 latency      : 132.987 us
 P95 latency      : 240.549 us
 P99 latency      : 312.791 us
 ========================================
-root@harshlaptop:~/redisC++# ./benchmark_client ERASE 100000
+./benchmark_client ERASE 100000
 
 ========================================
 Benchmark: ERASE
@@ -78,7 +78,7 @@ P50 latency      : 127.518 us
 P95 latency      : 223.003 us
 P99 latency      : 282.189 us
 ========================================
-root@harshlaptop:~/redisC++# ./benchmark_client SET 100000
+./benchmark_client SET 100000
 
 ========================================
 Benchmark: SET

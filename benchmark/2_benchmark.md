@@ -20,7 +20,7 @@ P50 latency          : 1287.67 us
 P95 latency          : 1634.26 us
 P99 latency          : 1771.79 us
 ============================================
-root@harshlaptop:~/redisC++# ./benchmarkV2 1 1000 GET
+./benchmarkV2 1 1000 GET
 
 Starting benchmark...
 Clients: 1
@@ -42,7 +42,7 @@ P50 latency          : 984.915 us
 P95 latency          : 1426.77 us
 P99 latency          : 1631.83 us
 ============================================
-root@harshlaptop:~/redisC++# ./benchmarkV2 10 1000 SET
+./benchmarkV2 10 1000 SET
 
 Starting benchmark...
 Clients: 10
@@ -64,7 +64,7 @@ P50 latency          : 12656.8 us
 P95 latency          : 13722.2 us
 P99 latency          : 21901.2 us
 ============================================
-root@harshlaptop:~/redisC++# ./benchmarkV2 10 1000 GET
+./benchmarkV2 10 1000 GET
 
 Starting benchmark...
 Clients: 10
@@ -86,7 +86,7 @@ P50 latency          : 9351.44 us
 P95 latency          : 10629.3 us
 P99 latency          : 18259.8 us
 ============================================
-root@harshlaptop:~/redisC++# ./benchmarkV2 100 1000 SET
+./benchmarkV2 100 1000 SET
 
 Starting benchmark...
 Clients: 100
@@ -108,7 +108,7 @@ P50 latency          : 54893.7 us
 P95 latency          : 88147.1 us
 P99 latency          : 1.80883e+06 us
 ============================================
-root@harshlaptop:~/redisC++# ./benchmarkV2 100 1000 GET
+./benchmarkV2 100 1000 GET
 
 Starting benchmark...
 Clients: 100
@@ -130,8 +130,6 @@ P50 latency          : 48489 us
 P95 latency          : 77989.2 us
 P99 latency          : 1.47196e+06 us
 ============================================
-root@harshlaptop:~/redisC++# ./benchmarkV2 10000 1000000
-0 SET
 
 Starting benchmark...
 Clients: 10000
