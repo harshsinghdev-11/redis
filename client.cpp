@@ -11,6 +11,7 @@
 #include <string>
 #include <vector>
 #include <iostream>
+using namespace std;
 
 
 int create_socket(){
@@ -35,22 +36,22 @@ bool connect_to_server(int fd){
     return rv==0;
 }
 
-void append_u32(std::vector<uint8_t>&buffer,const uint32_t &len){
+void append_u32(vector<uint8_t>&buffer,const uint32_t &len){
     const uint8_t* bytes = reinterpret_cast<const uint8_t*>(&len);
     buffer.insert(buffer.end(),bytes,bytes+sizeof(len));
     return;
 }
 
-void append_string(std::vector<uint8_t>&buffer,const std::string &str){
+void append_string(vector<uint8_t>&buffer,const string &str){
     uint32_t len = static_cast<uint32_t>(str.size());
     append_u32(buffer,len);
     buffer.insert(buffer.end(),str.begin(),str.end());
 }
 
 //cmd contain commands
-std::vector<uint8_t> make_request(const std::vector<std::string>&cmd){
+vector<uint8_t> make_request(const vector<string>&cmd){
     //request -> nstr , str.size , str
-    std::vector<uint8_t>out;
+    vector<uint8_t>out;
     uint32_t nstr = static_cast<uint32_t>(cmd.size());
     append_u32(out,nstr);
     uint32_t bodySize = 0;
@@ -59,7 +60,7 @@ std::vector<uint8_t> make_request(const std::vector<std::string>&cmd){
         append_string(out,cmd[i]);
     }
 
-    std::vector<uint8_t>request;
+    vector<uint8_t>request;
     uint32_t outSize = static_cast<uint32_t>(out.size());
     append_u32(request,outSize);
     request.insert(request.end(),out.begin(),out.end());
@@ -67,20 +68,20 @@ std::vector<uint8_t> make_request(const std::vector<std::string>&cmd){
 
 }
 
-void print_bytes(const std::vector<uint8_t>& buffer) {
+void print_bytes(const vector<uint8_t>& buffer) {
     for (uint8_t byte : buffer) {
-        std::cout << static_cast<int>(byte) << " ";
-        // std::cout <<byte << " ";
+        cout << static_cast<int>(byte) << " ";
+        // cout <<byte << " ";
     }
 
-    std::cout << "\n";
+    cout << "\n";
      for (uint8_t byte : buffer) {
-        // std::cout << static_cast<int>(byte) << " ";
-        std::cout <<byte << " ";
+        // cout << static_cast<int>(byte) << " ";
+        cout <<byte << " ";
     }
 }
 
-bool send_request(int fd,std::vector<uint8_t>&request){
+bool send_request(int fd,vector<uint8_t>&request){
 
     size_t total_sent =0;
     size_t request_size = request.size();
@@ -91,7 +92,7 @@ bool send_request(int fd,std::vector<uint8_t>&request){
             return false;
         }
         total_sent += static_cast<size_t>(rv);
-        std::cout<<"Send data: "<<total_sent<<std::endl;
+        cout<<"Send data: "<<total_sent<<endl;
 
     }
     
@@ -113,30 +114,30 @@ bool receive_response(int fd) {
         return false;
     }
 
-    std::cout << "Received "
+    cout << "Received "
               << rv
               << " bytes\n";
 
     for (ssize_t i = 0; i < rv; i++) {
-        std::cout << buffer[i] << " ";
+        cout << buffer[i] << " ";
     }
 
-    std::cout << "\n";
+    cout << "\n";
     return true;
 }
 
 int main() {
     int fd = create_socket();
     if(!connect_to_server(fd)){
-        std::cout<<"Error in connecting to server";
+        cout<<"Error in connecting to server";
     }
-    std::vector<std::string>cmd = {"set","name","Harsh"};
-     std::vector<uint8_t>request = make_request(cmd); 
+    vector<string>cmd = {"set","name","Harsh"};
+     vector<uint8_t>request = make_request(cmd); 
     send_request(fd,request);
     while(!receive_response(fd)){}
 
-    std::vector<std::string>cmd2 = {"get","name"};
-    std::vector<uint8_t>request2 = make_request(cmd2);
+    vector<string>cmd2 = {"get","name"};
+    vector<uint8_t>request2 = make_request(cmd2);
     send_request(fd,request2);
     while(!receive_response(fd)){}
     return 0;

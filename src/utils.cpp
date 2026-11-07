@@ -6,6 +6,9 @@
 #include <cstdint>
 #include <string.h>
 #include <string>
+#include <iostream>
+using namespace std;
+
 
 void die(const char* msg){
     perror(msg);
@@ -25,12 +28,12 @@ bool read_u32(const uint8_t *&cur, const uint8_t *end,uint32_t &out){
     return true;
 }
 
-bool read_str(const uint8_t *&curr,const uint8_t *end,size_t n,std::string &out){
+bool read_str(const uint8_t *&curr,const uint8_t *end,size_t n,string &out){
     if(curr + n > end){
         return false;
     }
     out.assign(curr,curr+n);
-    std::cout<<"string data: "<<out<<std::endl;
+    cout<<"string data: "<<out<<endl;
     curr+=n;
     return true;
     

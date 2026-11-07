@@ -3,24 +3,25 @@
 #include "linkedlist.h"
 #include <vector>
 #include <cstdint>
-
+#include<iostream>
+using namespace std;
 
 class Hashtable{
 private:
-   std::vector<Node*> newer;
-    std::vector<Node*> older;
+   vector<Node*> newer;
+    vector<Node*> older;
     size_t size = 0;
     size_t migrate_pos = 0;
 
     static constexpr double MAX_LOAD_FACTOR = 0.75;
 
-    uint32_t hash(const std::string& key) const;
+    uint32_t hash(const string& key) const;
 
     void start_resize();
 
     void help_rehashing();
 
-    void destroy_table(std::vector<Node*>& table);
+    void destroy_table(vector<Node*>& table);
 
     
 public:
@@ -31,11 +32,11 @@ public:
     Hashtable(const Hashtable&) = delete;
     Hashtable& operator=(const Hashtable&) = delete;
 
-    bool set(const std::string& key,const std::string& value);
+    bool set(const string& key,const string& value);
 
-    std::string get(const std::string& key);
+    string get(const string& key);
 
-    bool erase(const std::string& key);
+    bool erase(const string& key);
 
     double load_factor() const;
 

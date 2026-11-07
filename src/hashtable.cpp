@@ -76,7 +76,7 @@ void Hashtable::help_rehashing(){
         return;
     }
 
-    constexpr size_t REHASH_WORK = 2;
+    constexpr size_t REHASH_WORK = 6;
 
     size_t work = 0;
 

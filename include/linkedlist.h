@@ -1,13 +1,13 @@
 #ifndef LINKED_LIST
 #define LINKED_LIST
 #include <string>
-
+using namespace std;
 struct Node
 {
-    std::string key;
-    std::string value;
+    string key;
+    string value;
     Node* next;
-    Node(std::string key,std::string value){
+    Node(string key,string value){
         this->key = key;
         this->value = value;
         this->next = nullptr;
