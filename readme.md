@@ -50,7 +50,7 @@ poll() Event Loop (Non-blocking I/O)
 1. Open your terminal (or WSL terminal).
 2. Navigate to the project root directory:
    ```bash
-   cd /path/to/redis_windows
+   cd /path/to/redis
    ```
 3. If you have not compiled the server yet, build it using:
    ```bash
