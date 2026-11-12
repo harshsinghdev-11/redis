@@ -267,8 +267,14 @@ Arrays are recursive; each element is preceded by its own tag.
 | :--- | :--- | :--- | :--- |
 | `get` | `<key>` | `TAG_STR <value>` | `TAG_ERR 404 "Key Doesn't exist"` |
 | `set` | `<key> <value>` | `TAG_NIL` | — |
-| `erase` | `<key>` | `TAG_NIL` | — |
+| `erase` | `<key>` | `TAG_NIL` | `TAG_ERR 404 "Key Doesn't exist"` |
+| `subscribe` | `<ch1> [ch2 ...]` | `TAG_ARR(3) ["subscribe", ch, count]` | `TAG_ERR 400 "ERR wrong number of arguments"` |
+| `unsubscribe` | `[ch1 ...]` | `TAG_ARR(3) ["unsubscribe", ch, remaining]` | — |
+| `publish` | `<channel> <message>` | `TAG_INT <receivers_count>` | `TAG_ERR 400 "ERR wrong number of arguments"` |
+| `ping` | `[<message>]` | `TAG_STR "PONG"` or `TAG_ARR(2) ["pong", msg]` | — |
+| `quit` | — | `TAG_NIL` | — |
 | *Unknown* | *any* | — | `TAG_ERR 404 "unrecognized command"` |
+| *Context Error* | *Disallowed in Pub/Sub* | — | `TAG_ERR 400 "ERR only (P)SUBSCRIBE / (P)UNSUBSCRIBE / PING / QUIT allowed in this context"` |
 
 > **Note:** Command names are lowercase and case-sensitive.
 

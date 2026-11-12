@@ -1,6 +1,6 @@
 #include "serialisation.h"
-#include <bits/stdc++.h>
-using namespace std;
+#include <cstring>
+#include <stdexcept>
 
 static void append_u8(tempBuffer& out, uint8_t value) {
     out.push_back(value);
@@ -26,15 +26,15 @@ static void append_i64(tempBuffer& out, int64_t value) {
     }
 }
 
-static void append_bytes(tempBuffer& out, const uint8_t* data, size_t size){
+static void append_bytes(tempBuffer& out, const uint8_t* data, size_t size) {
     out.insert(out.end(), data, data + size);
 }
 
-void out_nil(tempBuffer& out){
+void out_nil(tempBuffer& out) {
     append_u8(out, TAG_NIL);
 }
 
-void out_str(tempBuffer& out, const string& value){
+void out_str(tempBuffer& out, const std::string& value) {
     if (value.size() > UINT32_MAX) {
         throw std::length_error("String too large");
     }
@@ -49,14 +49,12 @@ void out_str(tempBuffer& out, const string& value){
     }
 }
 
-
-
-void out_int(tempBuffer& out, int64_t value){
-     append_u8(out, TAG_INT);
+void out_int(tempBuffer& out, int64_t value) {
+    append_u8(out, TAG_INT);
     append_i64(out, value);
 }
 
-void out_dbl(tempBuffer& out, double value){
+void out_dbl(tempBuffer& out, double value) {
     static_assert(sizeof(double) == 8);
 
     uint64_t bits;
@@ -70,13 +68,36 @@ void out_dbl(tempBuffer& out, double value){
         );
     }
 }
-void out_arr(tempBuffer& out, uint32_t count){
+
+void out_arr(tempBuffer& out, uint32_t count) {
     append_u8(out, TAG_ARR);
     append_u32(out, count);
 }
 
-void out_err(tempBuffer& out, uint32_t code,const string& message){
+void out_err(tempBuffer& out, uint32_t code, const std::string& message) {
     append_u8(out, TAG_ERR);
     append_u32(out, code);
     out_str(out, message);
+}
+
+// Pub/Sub serialization helpers
+void out_subscribe_confirm(tempBuffer& out, const std::string& channel, int64_t count) {
+    out_arr(out, 3);
+    out_str(out, "subscribe");
+    out_str(out, channel);
+    out_int(out, count);
+}
+
+void out_unsubscribe_confirm(tempBuffer& out, const std::string& channel, int64_t count) {
+    out_arr(out, 3);
+    out_str(out, "unsubscribe");
+    out_str(out, channel);
+    out_int(out, count);
+}
+
+void out_pubsub_msg(tempBuffer& out, const std::string& channel, const std::string& payload) {
+    out_arr(out, 3);
+    out_str(out, "message");
+    out_str(out, channel);
+    out_str(out, payload);
 }

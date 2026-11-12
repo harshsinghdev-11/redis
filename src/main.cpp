@@ -1,5 +1,5 @@
-#include<iostream>
-#include<cstdint>
+#include <iostream>
+#include <cstdint>
 #include <vector>
 #include <poll.h>
 #include <netinet/in.h>
@@ -11,135 +11,129 @@
 #include <errno.h>
 #include <cstdlib>
 #include <cstdio>
-#include <bits/stdc++.h>
 
 #include "connection.h"
 #include "utils.h"
 #include "network.h"
+#include "pubsub.h"
 
 using namespace std;
 
-
-
-int main(){
-    
-    int fd = socket(AF_INET,SOCK_STREAM,0);
-    cout<<"Connection fd is: ";
-    cout<<fd<<"\n";
-    if(fd<0){
+int main() {
+    int fd = socket(AF_INET, SOCK_STREAM, 0);
+    std::cout << "Connection fd is: " << fd << "\n";
+    if (fd < 0) {
         die("socket()");
     }
 
     int val = 1;
-    // SOL_SOCKET = general socket option
-    // second parameter of setsockopt suggest the layer of TCP/IP 
-    setsockopt(fd,SOL_SOCKET, SO_REUSEADDR, &val, sizeof(val));
-    cout<<"socket is configured\n";
-    //binding the socket
+    setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &val, sizeof(val));
+    std::cout << "socket is configured\n";
+
+    // Binding the socket
     struct sockaddr_in addr = {};
     addr.sin_family = AF_INET;
     addr.sin_port = htons(1234);
     addr.sin_addr.s_addr = htonl(0);
 
-
-    //typecasting &addr - generic c api accepting the base struct 
-    // a form of manual polymorphism
-    int rv = bind(fd,(const sockaddr*)&addr,sizeof(addr));
-    
-    if(rv){
+    int rv = bind(fd, (const sockaddr*)&addr, sizeof(addr));
+    if (rv) {
         die("bind()");
     }
 
     fd_set_nb(fd);
 
-
-    //SOMAXCONN = maximum backlog queue
-    // what is backlog queue? 
-    rv = listen(fd,SOMAXCONN);
-    if(rv){
+    rv = listen(fd, SOMAXCONN);
+    if (rv) {
         die("listen()");
     }
 
     vector<Conn*> fd2Conn;
-
-    //
-    vector<struct pollfd>poll_args;
+    vector<struct pollfd> poll_args;
     int count = 0;
 
-    while(true){
+    while (true) {
         poll_args.clear();
         count++;
-        cout<<"Count is: "<<count<<endl;
-        cout<<"event loop is started\n";
+        cout << "Count is: " << count << endl;
+        std::cout << "event loop is started\n";
 
-        //listening socket in first position
-        struct pollfd pfd= {fd,POLLIN | POLLOUT,0};
-        cout<<"event of pfd: "<<pfd.events<<endl;
+        // Listening socket in first position
+        struct pollfd pfd = {fd, POLLIN | POLLOUT, 0};
+        std::cout << "event of pfd: " << pfd.events << std::endl;
         poll_args.push_back(pfd);
 
-        for(Conn *conn:fd2Conn){
-            if(!conn){
+        for (Conn *conn : fd2Conn) {
+            if (!conn) {
                 continue;
             }
-            struct pollfd pfd = {conn->fd,POLLERR,0};
-            cout<< "fd="<< conn->fd<< " read="<< conn->want_read<< " write="<< conn->want_write<< " incoming="<< conn->incoming.size()<< " outgoing="<< conn->outgoing.size()<< endl;
-            if(conn->want_read){
+            struct pollfd pfd = {conn->fd, POLLERR, 0};
+            std::cout << "fd=" << conn->fd
+                      << " read=" << conn->want_read
+                      << " write=" << conn->want_write
+                      << " incoming=" << conn->incoming.size()
+                      << " outgoing=" << conn->outgoing.size() << std::endl;
+            if (conn->want_read) {
                 pfd.events |= POLLIN;
             }
-            if(conn->want_write){
+            if (conn->want_write) {
                 pfd.events |= POLLOUT;
             }
             poll_args.push_back(pfd);
         }
 
-        cout<<"Calling poll...\n";
-        int rv = poll(poll_args.data(),(nfds_t)poll_args.size(),-1);
-        cout<<"poll() returned: "<<rv<<"\n";
+        cout << "Calling poll...\n";
+        int rv = poll(poll_args.data(), (nfds_t)poll_args.size(), -1);
+        cout << "poll() returned: " << rv << "\n";
 
-        if(rv<0 && errno==EINTR){
+        if (rv < 0 && errno == EINTR) {
             continue;
         }
-        if(rv<0){
+        if (rv < 0) {
             die("poll");
         }
 
-        if(poll_args[0].revents){
-            if(Conn *conn = handle_accept(fd)){
-                if(fd2Conn.size() <= (size_t)conn->fd){
-                    fd2Conn.resize(conn->fd+1);
+        if (poll_args[0].revents) {
+            if (Conn *conn = handle_accept(fd)) {
+                if (fd2Conn.size() <= (size_t)conn->fd) {
+                    fd2Conn.resize(conn->fd + 1);
                 }
-                cout<<"Client connected"<<endl;
+                std::cout << "Client connected" << endl;
                 fd2Conn[conn->fd] = conn;
             }
         }
 
-        for(size_t i=1;i<poll_args.size();i++){
+        for (size_t i = 1; i < poll_args.size(); i++) {
             uint32_t ready = poll_args[i].revents;
-            cout<<"ready events: "<<ready<<endl;
-            if(ready==0){
+            std::cout << "ready events: " << ready << std::endl;
+            if (ready == 0) {
                 continue;
             }
-            cout<<"Enter in the handling of reading and writing"<<endl;
+
             Conn *conn = fd2Conn[poll_args[i].fd];
-            if(ready & POLLIN){
+            if (!conn) {
+                continue;
+            }
+
+            cout << "Enter in the handling of reading and writing" << endl;
+            if (ready & POLLIN) {
                 assert(conn->want_read);
-                cout<<"POLLIN condition true"<<endl;
+                cout << "POLLIN condition true" << endl;
                 handle_read(conn);
             }
-            if(ready & POLLOUT){
-                cout<<"Pollout condition true"<<endl;
-                assert(conn->want_write);
+
+            if (!conn->want_close && conn->want_write && (ready & POLLOUT)) {
+                cout << "Pollout condition true" << endl;
                 handle_write(conn);
             }
 
-            if((ready & POLLERR) || conn->want_close){
-                cout<<"Closing the connection"<<endl;
+            if ((ready & POLLERR) || conn->want_close) {
+                cout << "Closing the connection" << endl;
+                pubsub_cleanup_conn(conn);
                 (void)close(conn->fd);
                 fd2Conn[conn->fd] = NULL;
                 delete conn;
             }
         }
-
-
     }
 }
