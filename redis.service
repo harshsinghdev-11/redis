@@ -1,0 +1,15 @@
+[Unit]
+Description=Redis C++ In-Memory Server (Behind NGINX)
+After=network.target
+
+[Service]
+Type=simple
+User=ubuntu
+WorkingDirectory=/home/ubuntu/redisC++
+ExecStart=/home/ubuntu/redisC++/redis_server 1234
+Restart=always
+RestartSec=3
+LimitNOFILE=65535
+
+[Install]
+WantedBy=multi-user.target

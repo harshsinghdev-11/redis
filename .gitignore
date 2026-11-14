@@ -3,3 +3,10 @@ output
 server
 benchmark_client
 benchmarkV2
+redis_server
+*.o
+*.log
+test_ps
+sub
+pub
+test_pubsub
